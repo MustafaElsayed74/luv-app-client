@@ -1,0 +1,40 @@
+<div class="container">
+  <div class="card">
+    <!-- Profile Section -->
+    <section class="profile-section" *ngIf="!currentUser()">
+      <h2>Create Your Love Profile</h2>
+      <div class="form-group">
+        <input type="text" [(ngModel)]="profileName" placeholder="Your name..." class="input"
+          (keyup.enter)="saveProfile()" />
+        <button (click)="saveProfile()" [disabled]="!profileName().trim() || isSaving()" class="btn-primary">
+          {{ isSaving() ? 'Saving...' : 'Save ❤️' }}
+        </button>
+      </div>
+    </section>
+
+    <!-- User Profile Display -->
+    <section class="user-profile" *ngIf="currentUser()">
+      <h2>{{ currentUser()!.name }}</h2>
+      <p class="subtitle">Your love profile is ready ✨</p>
+    </section>
+
+    <!-- Poke Section -->
+    <section class="poke-section" *ngIf="currentUser()">
+      <h2>Send a Love Poke</h2>
+      <div class="users-list">
+        <div *ngFor="let user of users()" class="user-card">
+          <p class="user-name">{{ user.name }}</p>
+          <button *ngIf="user.id !== currentUser()!.id" (click)="sendPoke(user)" [disabled]="isPokeSending()"
+            class="btn-poke">
+            {{ isPokeSending() ? '...' : 'Poke 💌' }}
+          </button>
+          <span *ngIf="user.id === currentUser()!.id" class="self-label">
+            (That's you!)
+          </span>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<router-outlet />
