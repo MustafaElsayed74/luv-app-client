@@ -7,14 +7,15 @@ import { UserService } from '../../services/user.service';
 import { FriendService } from '../../services/friend.service';
 import { PokeService } from '../../services/poke.service';
 import { NotificationService } from '../../services/notification.service';
+import { PushNotificationService } from '../../services/push-notification.service';
 import { POKE_MESSAGE_TEMPLATES } from '../../constants/messages';
 import { getAvatarUrl, AVATARS } from '../../constants/avatars';
 
 @Component({
-    selector: 'app-dashboard',
-    standalone: true,
-    imports: [CommonModule, FormsModule],
-    template: `
+  selector: 'app-dashboard',
+  standalone: true,
+  imports: [CommonModule, FormsModule],
+  template: `
     <div class="dashboard">
       <!-- Header -->
       <header class="header">
@@ -253,7 +254,7 @@ import { getAvatarUrl, AVATARS } from '../../constants/avatars';
       }
     </div>
   `,
-    styles: [`
+  styles: [`
     .dashboard {
       min-height: 100vh;
       background: linear-gradient(135deg, #ffd6e8 0%, #e8d4f8 50%, #f0d9ff 100%);
@@ -741,330 +742,322 @@ import { getAvatarUrl, AVATARS } from '../../constants/avatars';
   `]
 })
 export class DashboardComponent implements OnInit, OnDestroy {
-    getAvatarUrl = getAvatarUrl;
-    AVATARS = AVATARS;
+  getAvatarUrl = getAvatarUrl;
+  AVATARS = AVATARS;
 
-    activeTab = signal('friends');
-    currentUser = signal<any>(null);
-    friends = signal<any[]>([]);
-    pendingRequests = signal<any[]>([]);
-    searchResults = signal<any[]>([]);
-    receivedPokes = signal<any[]>([]);
-    sentRequests = signal<number[]>([]);
-    unreadPokeIds = signal<number[]>([]);
-    seenPokeIds = signal<number[]>([]);
-    quickPokeLoadingIds = signal<number[]>([]);
-    quickPokedIds = signal<number[]>([]);
+  activeTab = signal('friends');
+  currentUser = signal<any>(null);
+  friends = signal<any[]>([]);
+  pendingRequests = signal<any[]>([]);
+  searchResults = signal<any[]>([]);
+  receivedPokes = signal<any[]>([]);
+  sentRequests = signal<number[]>([]);
+  unreadPokeIds = signal<number[]>([]);
+  seenPokeIds = signal<number[]>([]);
+  quickPokeLoadingIds = signal<number[]>([]);
+  quickPokedIds = signal<number[]>([]);
 
-    searchQuery = '';
-    showPokeDialog = signal(false);
-    showAvatarPicker = signal(false);
-    selectedFriend = signal<any>(null);
-    pokeMessage = '';
-    avatarChanging = signal(false);
+  searchQuery = '';
+  showPokeDialog = signal(false);
+  showAvatarPicker = signal(false);
+  selectedFriend = signal<any>(null);
+  pokeMessage = '';
+  avatarChanging = signal(false);
 
-    constructor(
-        private authService: AuthService,
-        private userService: UserService,
-        private friendService: FriendService,
-        private pokeService: PokeService,
-        private notificationService: NotificationService,
-        private router: Router
-    ) { }
+  constructor(
+    private authService: AuthService,
+    private userService: UserService,
+    private friendService: FriendService,
+    private pokeService: PokeService,
+    private notificationService: NotificationService,
+    private pushNotificationService: PushNotificationService,
+    private router: Router
+  ) { }
 
-    ngOnInit() {
-        if (!this.authService.isLoggedIn()) {
-            this.router.navigate(['/login']);
-            return;
-        }
-
-        this.currentUser.set(this.authService.getUser());
-        this.loadFriends();
-        this.loadPendingRequests();
-        this.loadSentRequests();
-        this.loadReceivedPokes();
-        this.notificationService.startConnection();
-        this.subscribeToNotifications();
+  ngOnInit() {
+    if (!this.authService.isLoggedIn()) {
+      this.router.navigate(['/login']);
+      return;
     }
 
-    ngOnDestroy() {
-        this.notificationService.stopConnection();
-    }
+    this.currentUser.set(this.authService.getUser());
+    this.loadFriends();
+    this.loadPendingRequests();
+    this.loadSentRequests();
+    this.loadReceivedPokes();
+    this.notificationService.startConnection();
+    this.subscribeToNotifications();
 
-    loadFriends() {
-        this.friendService.getFriendsList().subscribe({
-            next: (friends) => this.friends.set(friends),
-            error: (error) => console.error('Error loading friends:', error)
-        });
-    }
-
+    // Initialize push notifications after user is logged in
+    this.pushNotificationService.initializePushNotifications()
+      .catch(err => console.error('Failed to initialize push notifications:', err));
     loadPendingRequests() {
-        this.friendService.getPendingRequests().subscribe({
-            next: (requests) => this.pendingRequests.set(requests),
-            error: (error) => console.error('Error loading requests:', error)
-        });
+      this.friendService.getPendingRequests().subscribe({
+        next: (requests) => this.pendingRequests.set(requests),
+        error: (error) => console.error('Error loading requests:', error)
+      });
     }
 
     loadSentRequests() {
-        this.friendService.getSentRequests().subscribe({
-            next: (requests) => {
-                const ids = (requests || []).map((r: any) => r.toUserId);
-                this.sentRequests.set(ids);
-            },
-            error: (error) => console.error('Error loading sent requests:', error)
-        });
+      this.friendService.getSentRequests().subscribe({
+        next: (requests) => {
+          const ids = (requests || []).map((r: any) => r.toUserId);
+          this.sentRequests.set(ids);
+        },
+        error: (error) => console.error('Error loading sent requests:', error)
+      });
     }
 
     loadReceivedPokes() {
-        this.pokeService.getReceivedPokes().subscribe({
-            next: (pokes) => {
-                this.receivedPokes.set(pokes);
-                const currentIds = (pokes || []).map((p: any) => p.id);
+      this.pokeService.getReceivedPokes().subscribe({
+        next: (pokes) => {
+          this.receivedPokes.set(pokes);
+          const currentIds = (pokes || []).map((p: any) => p.id);
 
-                // If we're viewing the Check Ins tab, mark all as read
-                if (this.activeTab() === 'pokes') {
-                    this.seenPokeIds.set(currentIds);
-                    this.unreadPokeIds.set([]);
-                } else {
-                    const seen = new Set(this.seenPokeIds());
-                    const unread = new Set(this.unreadPokeIds());
-                    // Add new ids to unread
-                    currentIds.forEach((id: number) => {
-                        if (!seen.has(id)) unread.add(id);
-                    });
-                    // Remove ids that no longer exist
-                    [...unread].forEach((id: number) => {
-                        if (!currentIds.includes(id)) unread.delete(id);
-                    });
-                    this.unreadPokeIds.set([...unread]);
-                }
-            },
-            error: (error) => console.error('Error loading pokes:', error)
-        });
+          // If we're viewing the Check Ins tab, mark all as read
+          if (this.activeTab() === 'pokes') {
+            this.seenPokeIds.set(currentIds);
+            this.unreadPokeIds.set([]);
+          } else {
+            const seen = new Set(this.seenPokeIds());
+            const unread = new Set(this.unreadPokeIds());
+            // Add new ids to unread
+            currentIds.forEach((id: number) => {
+              if (!seen.has(id)) unread.add(id);
+            });
+            // Remove ids that no longer exist
+            [...unread].forEach((id: number) => {
+              if (!currentIds.includes(id)) unread.delete(id);
+            });
+            this.unreadPokeIds.set([...unread]);
+          }
+        },
+        error: (error) => console.error('Error loading pokes:', error)
+      });
     }
 
     searchUsers(query: string) {
-        if (!query.trim()) {
-            this.searchResults.set([]);
-            return;
-        }
+      if (!query.trim()) {
+        this.searchResults.set([]);
+        return;
+      }
 
-        this.userService.search(query).subscribe({
-            next: (results) => {
-                const filtered = results.filter((u: any) => u.id !== this.currentUser().id);
-                this.searchResults.set(filtered);
-            },
-            error: (error) => console.error('Error searching users:', error)
-        });
+      this.userService.search(query).subscribe({
+        next: (results) => {
+          const filtered = results.filter((u: any) => u.id !== this.currentUser().id);
+          this.searchResults.set(filtered);
+        },
+        error: (error) => console.error('Error searching users:', error)
+      });
     }
 
     sendFriendRequest(userId: number) {
-        this.friendService.sendFriendRequest(userId).subscribe({
-            next: () => {
-                // Optimistically mark as sent and refresh search results
-                if (!this.sentRequests().includes(userId)) {
-                    this.sentRequests.set([...this.sentRequests(), userId]);
-                }
-                this.searchUsers(this.searchQuery);
-            },
-            error: (error) => {
-                const msg: string = error?.error?.message || '';
-                // If already sent, reflect UI state
-                if (msg.toLowerCase().includes('already sent')) {
-                    if (!this.sentRequests().includes(userId)) {
-                        this.sentRequests.set([...this.sentRequests(), userId]);
-                    }
-                }
-                // If already friends, refresh friends list
-                if (msg.toLowerCase().includes('already friends')) {
-                    this.loadFriends();
-                }
-                // Optionally refresh search list to update buttons
-                this.searchUsers(this.searchQuery);
-                console.error('Error sending friend request:', msg || error);
+      this.friendService.sendFriendRequest(userId).subscribe({
+        next: () => {
+          // Optimistically mark as sent and refresh search results
+          if (!this.sentRequests().includes(userId)) {
+            this.sentRequests.set([...this.sentRequests(), userId]);
+          }
+          this.searchUsers(this.searchQuery);
+        },
+        error: (error) => {
+          const msg: string = error?.error?.message || '';
+          // If already sent, reflect UI state
+          if (msg.toLowerCase().includes('already sent')) {
+            if (!this.sentRequests().includes(userId)) {
+              this.sentRequests.set([...this.sentRequests(), userId]);
             }
-        });
+          }
+          // If already friends, refresh friends list
+          if (msg.toLowerCase().includes('already friends')) {
+            this.loadFriends();
+          }
+          // Optionally refresh search list to update buttons
+          this.searchUsers(this.searchQuery);
+          console.error('Error sending friend request:', msg || error);
+        }
+      });
     }
 
     acceptRequest(requestId: number) {
-        this.friendService.acceptFriendRequest(requestId).subscribe({
-            next: () => {
-                this.loadFriends();
-                this.loadPendingRequests();
-            },
-            error: (error) => console.error('Error accepting request:', error)
-        });
+      this.friendService.acceptFriendRequest(requestId).subscribe({
+        next: () => {
+          this.loadFriends();
+          this.loadPendingRequests();
+        },
+        error: (error) => console.error('Error accepting request:', error)
+      });
     }
 
     rejectRequest(requestId: number) {
-        this.friendService.rejectFriendRequest(requestId).subscribe({
-            next: () => {
-                this.loadPendingRequests();
-            },
-            error: (error) => console.error('Error rejecting request:', error)
-        });
+      this.friendService.rejectFriendRequest(requestId).subscribe({
+        next: () => {
+          this.loadPendingRequests();
+        },
+        error: (error) => console.error('Error rejecting request:', error)
+      });
     }
 
     openPokeDialog(friend: any) {
-        this.selectedFriend.set(friend);
-        this.pokeMessage = '';
-        this.showPokeDialog.set(true);
+      this.selectedFriend.set(friend);
+      this.pokeMessage = '';
+      this.showPokeDialog.set(true);
     }
 
     closePokeDialog() {
-        this.showPokeDialog.set(false);
-        this.selectedFriend.set(null);
-        this.pokeMessage = '';
+      this.showPokeDialog.set(false);
+      this.selectedFriend.set(null);
+      this.pokeMessage = '';
     }
 
     sendPoke() {
-        if (!this.pokeMessage.trim() || !this.selectedFriend()) {
-            return;
-        }
+      if (!this.pokeMessage.trim() || !this.selectedFriend()) {
+        return;
+      }
 
-        this.pokeService.sendPoke(this.selectedFriend().id, this.pokeMessage).subscribe({
-            next: () => {
-                this.closePokeDialog();
-                this.loadReceivedPokes();
-            },
-            error: (error) => console.error('Error sending poke:', error)
-        });
+      this.pokeService.sendPoke(this.selectedFriend().id, this.pokeMessage).subscribe({
+        next: () => {
+          this.closePokeDialog();
+          this.loadReceivedPokes();
+        },
+        error: (error) => console.error('Error sending poke:', error)
+      });
     }
 
     quickPoke(friend: any) {
-        if (!friend) return;
+      if (!friend) return;
 
-        const from = this.currentUser()?.username || '';
-        const to = friend.username || '';
-        const template = POKE_MESSAGE_TEMPLATES[Math.floor(Math.random() * POKE_MESSAGE_TEMPLATES.length)] || '';
-        const message = template
-            .replaceAll('{{to}}', to)
-            .replaceAll('{{from}}', from)
-            .replaceAll('{user}', to)
-            .replaceAll('{me}', from);
+      const from = this.currentUser()?.username || '';
+      const to = friend.username || '';
+      const template = POKE_MESSAGE_TEMPLATES[Math.floor(Math.random() * POKE_MESSAGE_TEMPLATES.length)] || '';
+      const message = template
+        .replaceAll('{{to}}', to)
+        .replaceAll('{{from}}', from)
+        .replaceAll('{user}', to)
+        .replaceAll('{me}', from);
 
-        if (!message.trim()) return;
+      if (!message.trim()) return;
 
-        // mark as loading to prevent double clicks
-        if (!this.quickPokeLoadingIds().includes(friend.id)) {
-            this.quickPokeLoadingIds.set([...this.quickPokeLoadingIds(), friend.id]);
+      // mark as loading to prevent double clicks
+      if (!this.quickPokeLoadingIds().includes(friend.id)) {
+        this.quickPokeLoadingIds.set([...this.quickPokeLoadingIds(), friend.id]);
+      }
+
+      this.pokeService.sendPoke(friend.id, message).subscribe({
+        next: () => {
+          this.loadReceivedPokes();
+          // update button to Sent and clear loading
+          this.quickPokeLoadingIds.set(this.quickPokeLoadingIds().filter(id => id !== friend.id));
+          if (!this.quickPokedIds().includes(friend.id)) {
+            this.quickPokedIds.set([...this.quickPokedIds(), friend.id]);
+          }
+          // reset to default after a short delay
+          setTimeout(() => {
+            this.quickPokedIds.set(this.quickPokedIds().filter(id => id !== friend.id));
+          }, 3000);
+        },
+        error: (error) => {
+          // clear loading state on error
+          this.quickPokeLoadingIds.set(this.quickPokeLoadingIds().filter(id => id !== friend.id));
+          console.error('Error sending quick poke:', error);
         }
-
-        this.pokeService.sendPoke(friend.id, message).subscribe({
-            next: () => {
-                this.loadReceivedPokes();
-                // update button to Sent and clear loading
-                this.quickPokeLoadingIds.set(this.quickPokeLoadingIds().filter(id => id !== friend.id));
-                if (!this.quickPokedIds().includes(friend.id)) {
-                    this.quickPokedIds.set([...this.quickPokedIds(), friend.id]);
-                }
-                // reset to default after a short delay
-                setTimeout(() => {
-                    this.quickPokedIds.set(this.quickPokedIds().filter(id => id !== friend.id));
-                }, 3000);
-            },
-            error: (error) => {
-                // clear loading state on error
-                this.quickPokeLoadingIds.set(this.quickPokeLoadingIds().filter(id => id !== friend.id));
-                console.error('Error sending quick poke:', error);
-            }
-        });
+      });
     }
 
     isQuickPokeLoading(userId: number): boolean {
-        return this.quickPokeLoadingIds().includes(userId);
+      return this.quickPokeLoadingIds().includes(userId);
     }
 
     isQuickPoked(userId: number): boolean {
-        return this.quickPokedIds().includes(userId);
+      return this.quickPokedIds().includes(userId);
     }
 
     getQuickPokeLabel(userId: number): string {
-        if (this.isQuickPokeLoading(userId)) return 'Sending…';
-        if (this.isQuickPoked(userId)) return 'Sent ✓';
-        return '⚡ Quick Check In';
+      if (this.isQuickPokeLoading(userId)) return 'Sending…';
+      if (this.isQuickPoked(userId)) return 'Sent ✓';
+      return '⚡ Quick Check In';
     }
 
     openAvatarPicker() {
-        this.showAvatarPicker.set(true);
+      this.showAvatarPicker.set(true);
     }
 
     closeAvatarPicker() {
-        this.showAvatarPicker.set(false);
+      this.showAvatarPicker.set(false);
     }
 
     changeAvatar(avatarId: string) {
-        if (this.avatarChanging()) return;
+      if (this.avatarChanging()) return;
 
-        const userId = this.currentUser().id;
-        if (!userId) return;
+      const userId = this.currentUser().id;
+      if (!userId) return;
 
-        this.avatarChanging.set(true);
-        this.userService.updateAvatar(userId, avatarId).subscribe({
-            next: (updatedUser) => {
-                this.currentUser.set(updatedUser);
-                this.authService.setUser(updatedUser);
-                this.avatarChanging.set(false);
-                this.closeAvatarPicker();
-            },
-            error: (error) => {
-                console.error('Error changing avatar:', error);
-                this.avatarChanging.set(false);
-            }
-        });
+      this.avatarChanging.set(true);
+      this.userService.updateAvatar(userId, avatarId).subscribe({
+        next: (updatedUser) => {
+          this.currentUser.set(updatedUser);
+          this.authService.setUser(updatedUser);
+          this.avatarChanging.set(false);
+          this.closeAvatarPicker();
+        },
+        error: (error) => {
+          console.error('Error changing avatar:', error);
+          this.avatarChanging.set(false);
+        }
+      });
     }
 
     isChangingAvatar(): boolean {
-        return this.avatarChanging();
+      return this.avatarChanging();
     }
 
     subscribeToNotifications() {
-        this.notificationService.notificationReceived$.subscribe((notif) => {
-            if (notif) {
-                this.loadReceivedPokes();
-            }
-        });
+      this.notificationService.notificationReceived$.subscribe((notif) => {
+        if (notif) {
+          this.loadReceivedPokes();
+        }
+      });
 
-        this.notificationService.friendRequestReceived$.subscribe((req) => {
-            if (req) {
-                this.loadPendingRequests();
-            }
-        });
+      this.notificationService.friendRequestReceived$.subscribe((req) => {
+        if (req) {
+          this.loadPendingRequests();
+        }
+      });
 
-        this.notificationService.friendRequestAccepted$.subscribe((data) => {
-            if (data) {
-                this.loadFriends();
-            }
-        });
+      this.notificationService.friendRequestAccepted$.subscribe((data) => {
+        if (data) {
+          this.loadFriends();
+        }
+      });
     }
 
     setActiveTab(tab: string) {
-        this.activeTab.set(tab);
-        if (tab === 'pokes') {
-            this.markAllPokesRead();
-        }
+      this.activeTab.set(tab);
+      if (tab === 'pokes') {
+        this.markAllPokesRead();
+      }
     }
 
     markAllPokesRead() {
-        const currentIds = (this.receivedPokes() || []).map((p: any) => p.id);
-        this.seenPokeIds.set(currentIds);
-        this.unreadPokeIds.set([]);
+      const currentIds = (this.receivedPokes() || []).map((p: any) => p.id);
+      this.seenPokeIds.set(currentIds);
+      this.unreadPokeIds.set([]);
     }
 
     formatDate(date: string): string {
-        return new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      return new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     }
 
     isFriend(userId: number): boolean {
-        return this.friends().some(f => f.id === userId);
+      return this.friends().some(f => f.id === userId);
     }
 
     isRequested(userId: number): boolean {
-        return this.sentRequests().includes(userId);
+      return this.sentRequests().includes(userId);
     }
 
     logout() {
-        this.authService.logout();
-        this.router.navigate(['/login']);
+      this.authService.logout();
+      this.router.navigate(['/login']);
     }
-}
+  }
