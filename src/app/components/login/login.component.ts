@@ -64,10 +64,12 @@ import { AuthService } from '../../services/auth.service';
     .login-container {
       min-height: 100vh;
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
       background: linear-gradient(135deg, #ffd6e8 0%, #e8d4f8 50%, #f0d9ff 100%);
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      position: relative;
     }
 
     .login-card {
@@ -168,8 +170,10 @@ import { AuthService } from '../../services/auth.service';
     }
 
     .footer {
+      position: absolute;
+      bottom: 1rem;
+      width: 100%;
       text-align: center;
-      margin-top: 2rem;
       color: rgba(0, 0, 0, 0.6);
       font-size: 0.9rem;
     }
