@@ -7,7 +7,7 @@ import { AuthService } from './auth.service';
     providedIn: 'root'
 })
 export class PokeService {
-    private apiUrl = 'http://localhost:5000/api/pokes';
+    private apiUrl = 'http://www.luvapp.somee.com/api/pokes';
 
     constructor(private http: HttpClient, private authService: AuthService) { }
 

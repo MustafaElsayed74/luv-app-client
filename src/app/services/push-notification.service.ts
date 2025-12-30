@@ -11,7 +11,7 @@ interface VapidResponse {
 })
 export class PushNotificationService {
     private http = inject(HttpClient);
-    private apiUrl = 'http://localhost:5000/api/push-subscription';
+    private apiUrl = 'http://www.luvapp.somee.com/api/push-subscription';
     private vapidPublicKey: string | null = null;
 
     async initializePushNotifications(): Promise<void> {

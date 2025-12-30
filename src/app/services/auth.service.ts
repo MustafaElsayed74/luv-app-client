@@ -6,7 +6,7 @@ import { Observable, BehaviorSubject } from 'rxjs';
     providedIn: 'root'
 })
 export class AuthService {
-    private apiUrl = 'http://localhost:5000/api/auth';
+    private apiUrl = 'http://www.luvapp.somee.com/api/auth';
     private tokenSubject = new BehaviorSubject<string | null>(this.getToken());
     public token$ = this.tokenSubject.asObservable();
     private userSubject = new BehaviorSubject<any>(this.getUser());

@@ -19,7 +19,7 @@ export class NotificationService {
         if (!token) return;
 
         this.hubConnection = new HubConnectionBuilder()
-            .withUrl(`http://localhost:5000/hubs/notifications?access_token=${token}`)
+            .withUrl(`http://www.luvapp.somee.com/hubs/notifications?access_token=${token}`)
             .withAutomaticReconnect()
             .configureLogging(LogLevel.Information)
             .build();
