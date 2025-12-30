@@ -19,7 +19,7 @@ export class NotificationService {
         if (!token) return;
 
         this.hubConnection = new HubConnectionBuilder()
-            .withUrl(`http://www.luvapp.somee.com/hubs/notifications?access_token=${token}`)
+            .withUrl(`https://luv-app-client.vercel.app/hubs/notifications?access_token=${token}`)
             .withAutomaticReconnect()
             .configureLogging(LogLevel.Information)
             .build();

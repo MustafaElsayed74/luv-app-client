@@ -7,7 +7,7 @@ import { AuthService } from './auth.service';
     providedIn: 'root'
 })
 export class FriendService {
-    private apiUrl = 'http://www.luvapp.somee.com/api/friends';
+    private apiUrl = '/api/friends';
 
     constructor(private http: HttpClient, private authService: AuthService) { }
 
