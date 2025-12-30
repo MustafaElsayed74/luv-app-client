@@ -6,10 +6,10 @@ import { AuthService } from '../../services/auth.service';
 import { AVATARS, getAvatarUrl } from '../../constants/avatars';
 
 @Component({
-    selector: 'app-signup',
-    standalone: true,
-    imports: [CommonModule, FormsModule],
-    template: `
+  selector: 'app-signup',
+  standalone: true,
+  imports: [CommonModule, FormsModule],
+  template: `
     <div class="signup-container">
       <div class="signup-card">
         <h1>💖 Create Account</h1>
@@ -72,9 +72,12 @@ import { AVATARS, getAvatarUrl } from '../../constants/avatars';
           <a (click)="goToLogin()" class="link">Login</a>
         </p>
       </div>
+      <footer class="footer">
+        <p>Developed With <span class="heart">❤️</span> القشة الأقوىٰ في العالم</p>
+      </footer>
     </div>
   `,
-    styles: [`
+  styles: [`
     .signup-container {
       min-height: 100vh;
       display: flex;
@@ -224,51 +227,70 @@ import { AVATARS, getAvatarUrl } from '../../constants/avatars';
     .link:hover {
       color: #da70d6;
     }
+
+    .footer {
+      text-align: center;
+      margin-top: 2rem;
+      color: rgba(0, 0, 0, 0.6);
+      font-size: 0.9rem;
+    }
+
+    .footer .heart {
+      display: inline-block;
+      animation: heartbeat 1.5s ease-in-out infinite;
+      color: #ff4081;
+    }
+
+    @keyframes heartbeat {
+      0%, 100% { transform: scale(1); }
+      10%, 30% { transform: scale(1.1); }
+      20% { transform: scale(1.15); }
+    }
   `]
 })
 export class SignupComponent {
-    username = '';
-    password = '';
-    selectedAvatar = 'avatar-1';
-    error = signal('');
-    loading = signal(false);
-    avatars = AVATARS;
-    getAvatarUrl = getAvatarUrl;
+  username = '';
+  password = '';
+  selectedAvatar = 'avatar-1';
+  error = signal('');
+  loading = signal(false);
+  avatars = AVATARS;
+  getAvatarUrl = getAvatarUrl;
 
-    constructor(private authService: AuthService, private router: Router) { }
+  constructor(private authService: AuthService, private router: Router) { }
 
-    selectAvatar(avatarId: string) {
-        this.selectedAvatar = avatarId;
+  selectAvatar(avatarId: string) {
+    this.selectedAvatar = avatarId;
+  }
+
+  onSignup() {
+    if (!this.username || !this.password) {
+      this.error.set('Please fill in all fields');
+      return;
     }
 
-    onSignup() {
-        if (!this.username || !this.password) {
-            this.error.set('Please fill in all fields');
-            return;
-        }
-
-        if (this.password.length < 6) {
-            this.error.set('Password must be at least 6 characters');
-            return;
-        }
-
-        this.loading.set(true);
-        this.error.set('');
-
-        this.authService.signup(this.username, this.password, this.selectedAvatar).subscribe({
-            next: (response) => {
-                this.authService.setToken(response.token);
-                this.authService.setUser(response.user);
-                this.router.navigate(['/dashboard']);
-            },
-            error: (error) => {
-                this.error.set(error.error?.message || 'Sign up failed. Please try again.');
-                this.loading.set(false);
-            }
-        });
+    if (this.password.length < 6) {
+      this.error.set('Password must be at least 6 characters');
+      return;
     }
 
-    goToLogin() {
-        this.router.navigate(['/login']);
-    }
+    this.loading.set(true);
+    this.error.set('');
+
+    this.authService.signup(this.username, this.password, this.selectedAvatar).subscribe({
+      next: (response) => {
+        this.authService.setToken(response.token);
+        this.authService.setUser(response.user);
+        this.router.navigate(['/dashboard']);
+      },
+      error: (error) => {
+        this.error.set(error.error?.message || 'Sign up failed. Please try again.');
+        this.loading.set(false);
+      }
+    });
+  }
+
+  goToLogin() {
+    this.router.navigate(['/login']);
+  }
 }

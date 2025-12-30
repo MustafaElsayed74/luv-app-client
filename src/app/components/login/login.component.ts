@@ -5,10 +5,10 @@ import { Router } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 
 @Component({
-    selector: 'app-login',
-    standalone: true,
-    imports: [CommonModule, FormsModule],
-    template: `
+  selector: 'app-login',
+  standalone: true,
+  imports: [CommonModule, FormsModule],
+  template: `
     <div class="login-container">
       <div class="login-card">
         <h1>💖 Love Poke</h1>
@@ -55,9 +55,12 @@ import { AuthService } from '../../services/auth.service';
           <a (click)="goToSignup()" class="link">Sign up</a>
         </p>
       </div>
+      <footer class="footer">
+        <p>Developed With <span class="heart">❤️</span> القشة الأقوىٰ في العالم</p>
+      </footer>
     </div>
   `,
-    styles: [`
+  styles: [`
     .login-container {
       min-height: 100vh;
       display: flex;
@@ -163,39 +166,58 @@ import { AuthService } from '../../services/auth.service';
     .link:hover {
       color: #da70d6;
     }
+
+    .footer {
+      text-align: center;
+      margin-top: 2rem;
+      color: rgba(0, 0, 0, 0.6);
+      font-size: 0.9rem;
+    }
+
+    .footer .heart {
+      display: inline-block;
+      animation: heartbeat 1.5s ease-in-out infinite;
+      color: #ff4081;
+    }
+
+    @keyframes heartbeat {
+      0%, 100% { transform: scale(1); }
+      10%, 30% { transform: scale(1.1); }
+      20% { transform: scale(1.15); }
+    }
   `]
 })
 export class LoginComponent {
-    username = '';
-    password = '';
-    error = signal('');
-    loading = signal(false);
+  username = '';
+  password = '';
+  error = signal('');
+  loading = signal(false);
 
-    constructor(private authService: AuthService, private router: Router) { }
+  constructor(private authService: AuthService, private router: Router) { }
 
-    onLogin() {
-        if (!this.username || !this.password) {
-            this.error.set('Please fill in all fields');
-            return;
-        }
-
-        this.loading.set(true);
-        this.error.set('');
-
-        this.authService.login(this.username, this.password).subscribe({
-            next: (response) => {
-                this.authService.setToken(response.token);
-                this.authService.setUser(response.user);
-                this.router.navigate(['/dashboard']);
-            },
-            error: (error) => {
-                this.error.set(error.error?.message || 'Login failed. Please try again.');
-                this.loading.set(false);
-            }
-        });
+  onLogin() {
+    if (!this.username || !this.password) {
+      this.error.set('Please fill in all fields');
+      return;
     }
 
-    goToSignup() {
-        this.router.navigate(['/signup']);
-    }
+    this.loading.set(true);
+    this.error.set('');
+
+    this.authService.login(this.username, this.password).subscribe({
+      next: (response) => {
+        this.authService.setToken(response.token);
+        this.authService.setUser(response.user);
+        this.router.navigate(['/dashboard']);
+      },
+      error: (error) => {
+        this.error.set(error.error?.message || 'Login failed. Please try again.');
+        this.loading.set(false);
+      }
+    });
+  }
+
+  goToSignup() {
+    this.router.navigate(['/signup']);
+  }
 }
