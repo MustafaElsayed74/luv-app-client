@@ -1,16 +1,13 @@
 export const AVATARS = [
-    { id: 'avatar-1', name: '💕', emoji: '💕' },
-    { id: 'avatar-2', name: '😍', emoji: '😍' },
-    { id: 'avatar-3', name: '🥰', emoji: '🥰' },
-    { id: 'avatar-4', name: '💖', emoji: '💖' },
-    { id: 'avatar-5', name: '💝', emoji: '💝' },
-    { id: 'avatar-6', name: '🎀', emoji: '🎀' },
-    { id: 'avatar-7', name: '✨', emoji: '✨' },
-    { id: 'avatar-8', name: '🌹', emoji: '🌹' },
-    { id: 'avatar-9', name: '🦋', emoji: '🦋' },
-    { id: 'avatar-10', name: '⭐', emoji: '⭐' },
-    { id: 'avatar-11', name: '🌟', emoji: '🌟' },
-    { id: 'avatar-12', name: '💫', emoji: '💫' },
+    { id: 'afterclap-1', name: 'Afterclap 1', emoji: '💕' },
+    { id: 'afterclap-2', name: 'Afterclap 2', emoji: '😍' },
+    { id: 'afterclap-3', name: 'Afterclap 3', emoji: '🥰' },
+    { id: 'afterclap-4', name: 'Afterclap 4', emoji: '💖' },
+    { id: 'afterclap-5', name: 'Afterclap 5', emoji: '💝' },
+    { id: 'afterclap-6', name: 'Afterclap 6', emoji: '🎀' },
+    { id: 'afterclap-7', name: 'Afterclap 7', emoji: '✨' },
+    { id: 'afterclap-8', name: 'Afterclap 8', emoji: '🌹' },
+    { id: 'afterclap-9', name: 'Afterclap 9', emoji: '🦋' },
 ];
 
 export function getAvatarEmoji(avatarId: string): string {
@@ -19,13 +16,13 @@ export function getAvatarEmoji(avatarId: string): string {
 }
 
 // Returns an image URL for the selected avatar.
-// Images are served from public/assets/avatars/avatar-1.png ... avatar-12.png
+// Images are served from assets/avatars/Afterclap-1.png ... Afterclap-9.png
 export function getAvatarUrl(avatarId: string): string {
-    // Prefer numeric id parsing to avoid array index issues
-    const match = avatarId.match(/avatar-(\d+)/);
+    // Extract numeric id from afterclap-N format
+    const match = avatarId.match(/afterclap-(\d+)/);
     const num = match ? parseInt(match[1], 10) : 1;
-    if (num >= 1 && num <= 12) {
-        return `/assets/avatars/avatar-${num}.png`;
+    if (num >= 1 && num <= 9) {
+        return `/assets/avatars/Afterclap-${num}.png`;
     }
-    return `/assets/avatars/avatar-1.png`;
+    return `/assets/avatars/Afterclap-1.png`;
 }
